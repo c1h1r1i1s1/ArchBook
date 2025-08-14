@@ -5,8 +5,9 @@
       - firefox
       - alacritty
       - neovim
-      - pywal          # provides `wal`
+      - pywal
     state: present
+    update_cache: yes
 
 # AUR apps: Spotify, Microsoft VS Code, Joplin
 # (installs as the primary user to build AUR packages in $HOME)
