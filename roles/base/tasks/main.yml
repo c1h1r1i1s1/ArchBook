@@ -29,3 +29,8 @@
     enabled: true
     state: started
   loop: [NetworkManager, sshd]
+
+- name: Ensure base-devel installed
+  community.general.pacman:
+    name: base-devel
+    state: present
