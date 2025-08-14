@@ -5,7 +5,7 @@
       - firefox
       - alacritty
       - neovim
-      - pywal
+      - python-pywal
     state: present
     update_cache: yes
 
