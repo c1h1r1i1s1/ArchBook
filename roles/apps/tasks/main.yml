@@ -9,21 +9,18 @@
     state: present
     update_cache: yes
 
-# AUR apps: Spotify, Microsoft VS Code, Joplin
-# (installs as the primary user to build AUR packages in $HOME)
-- name: Install yay (AUR helper)
-  become: false
-  become_user: "{{ primary_user }}"
-  kewlfft.aur.aur:
-    name: yay
-    state: present
+- block:
+    - name: Install yay (AUR helper)
+      kewlfft.aur.aur:
+        name: yay
+        state: present
 
-- name: Install AUR apps (spotify, VS Code, Joplin)
+    - name: Install AUR apps (spotify, VS Code, Joplin)
+      kewlfft.aur.aur:
+        name:
+          - spotify
+          - visual-studio-code-bin
+          - joplin
+        state: present
   become: false
   become_user: "{{ primary_user }}"
-  kewlfft.aur.aur:
-    name:
-      - spotify
-      - visual-studio-code-bin
-      - joplin
-    state: present
