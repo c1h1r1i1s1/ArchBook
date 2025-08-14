@@ -11,9 +11,12 @@
 
 # AUR apps: Spotify, Microsoft VS Code, Joplin
 # (installs as the primary user to build AUR packages in $HOME)
-- name: Ensure yay via kewlfft.aur is present
-  include_role:
-    name: kewlfft.aur
+- name: Install yay (AUR helper)
+  become: false
+  become_user: "{{ primary_user }}"
+  kewlfft.aur.aur:
+    name: yay
+    state: present
 
 - name: Install AUR apps (spotify, VS Code, Joplin)
   become: false
