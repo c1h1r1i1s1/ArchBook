@@ -1,7 +1,3 @@
-# Aliases for SSH
-alias gk="ssh-add ~/.ssh/woody"
-alias ss="ssh c1h1r1i1s1@192.168.0.12 -p 2221 -i ~/.ssh/serverus"
-
 # Pywal colors (if present)
 [ -f "${HOME}/.cache/wal/colors.sh" ] && source "${HOME}/.cache/wal/colors.sh"
 [ -f "${HOME}/.cache/wal/sequences" ] && cat "${HOME}/.cache/wal/sequences"

@@ -1,0 +1,75 @@
+---
+- name: Ensure ~/.ssh exists
+  file:
+    path: "/home/{{ primary_user }}/.ssh"
+    state: directory
+    owner: "{{ primary_user }}"
+    group: "{{ primary_user }}"
+    mode: '0700'
+
+- name: Decide path for GitHub and server keys
+  set_fact:
+    _github_key: "{{ github_key_path | default('/home/' ~ primary_user ~ '/.ssh/woody') }}"
+    _serverus_key: "{{ serverus_key_path | default('/home/' ~ primary_user ~ '/.ssh/serverus') }}"
+
+# ----- OPTION A: install existing keys from vault -----
+- name: Install GitHub private key from vault
+  when: install_existing_keys | bool
+  copy:
+    dest: "{{ _github_key }}"
+    content: "{{ vault_github_private_key }}"
+    owner: "{{ primary_user }}"
+    group: "{{ primary_user }}"
+    mode: '0600'
+
+- name: Install Serverus private key from vault
+  when: install_existing_keys | bool
+  copy:
+    dest: "{{ _serverus_key }}"
+    content: "{{ vault_serverus_private_key }}"
+    owner: "{{ primary_user }}"
+    group: "{{ primary_user }}"
+    mode: '0600'
+
+# SSH config for GitHub + server (lets you use `ssh serverus` and git over SSH)
+- name: Install ~/.ssh/config
+  template:
+    src: "ssh_config.j2"
+    dest: "/home/{{ primary_user }}/.ssh/config"
+    owner: "{{ primary_user }}"
+    group: "{{ primary_user }}"
+    mode: '0600'
+
+# Known hosts to avoid first-connection prompts
+- name: Add known_host for GitHub
+  known_hosts:
+    path: "/home/{{ primary_user }}/.ssh/known_hosts"
+    name: "github.com"
+    key: "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMh4Gf1C9bK1v7Vb1a1J9BM3v1bZ7NQ2dK8Jr9K8Jb+"  # placeholder; Ansible will fetch if absent
+    state: present
+  ignore_errors: true
+
+- name: Scan and add GitHub host key if not present
+  become_user: "{{ primary_user }}"
+  become: false
+  shell: ssh-keyscan -t ed25519 github.com >> "$HOME/.ssh/known_hosts"
+  args: { creates: "/home/{{ primary_user }}/.ssh/.github_known" }
+  register: _ghscan
+  changed_when: _ghscan.rc == 0
+  failed_when: false
+
+- name: Mark github known scan
+  file:
+    path: "/home/{{ primary_user }}/.ssh/.github_known"
+    state: touch
+    owner: "{{ primary_user }}"
+    group: "{{ primary_user }}"
+    mode: '0600'
+
+- name: Add known_host for serverus
+  known_hosts:
+    path: "/home/{{ primary_user }}/.ssh/known_hosts"
+    name: "{{ serverus_host }}"
+    key: "{{ lookup('pipe', 'ssh-keyscan -p ' ~ serverus_port|string ~ ' -t ed25519 ' ~ serverus_host) }}"
+    state: present
+  ignore_errors: true

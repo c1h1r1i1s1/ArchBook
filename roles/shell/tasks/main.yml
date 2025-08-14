@@ -25,3 +25,12 @@
     path: "/home/{{ primary_user }}/.zshrc"
     marker: "# {mark} ANSIBLE MANAGED zshrc APPEND"
     block: "{{ lookup('file', role_path + '/files/zshrc.append') }}"
+
+- name: Enable systemd user ssh-agent
+  become: false
+  become_user: "{{ primary_user }}"
+  systemd:
+    name: ssh-agent.service
+    scope: user
+    enabled: true
+    state: started

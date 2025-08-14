@@ -1,0 +1,16 @@
+# GitHub via custom key
+Host github.com
+  HostName github.com
+  User git
+  IdentityFile {{ _github_key }}
+  IdentitiesOnly yes
+  AddKeysToAgent yes
+
+# Your home server
+Host serverus
+  HostName {{ serverus_host }}
+  Port {{ serverus_port }}
+  User {{ primary_user }}
+  IdentityFile {{ _serverus_key }}
+  IdentitiesOnly yes
+  AddKeysToAgent yes
