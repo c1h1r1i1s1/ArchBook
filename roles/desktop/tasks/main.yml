@@ -1,0 +1,16 @@
+- name: Cinnamon desktop + LightDM + audio
+  community.general.pacman:
+    name:
+      - cinnamon
+      - lightdm
+      - lightdm-gtk-greeter
+      - xorg
+      - pipewire
+      - pipewire-alsa
+      - pipewire-pulse
+      - wireplumber
+      - nemo
+    state: present
+
+- name: Enable LightDM
+  systemd: { name: lightdm, enabled: true, state: started }

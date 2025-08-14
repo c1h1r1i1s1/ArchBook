@@ -1,0 +1,27 @@
+- name: Install zsh
+  community.general.pacman: { name: zsh, state: present }
+
+- name: Ensure user shell is zsh
+  user: { name: "{{ primary_user }}", shell: "{{ primary_shell }}" }
+
+- name: Install oh-my-zsh (non-interactive)
+  become: false
+  become_user: "{{ primary_user }}"
+  shell: |
+    export RUNZSH=no CHSH=no KEEP_ZSHRC=yes
+    if [ ! -d "$HOME/.oh-my-zsh" ]; then
+      sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+    fi
+
+- name: Ensure ~/.zshrc exists
+  become: false
+  become_user: "{{ primary_user }}"
+  file: { path: "/home/{{ primary_user }}/.zshrc", state: touch }
+
+- name: Append aliases and pywal lines to .zshrc (idempotent)
+  become: false
+  become_user: "{{ primary_user }}"
+  blockinfile:
+    path: "/home/{{ primary_user }}/.zshrc"
+    marker: "# {mark} ANSIBLE MANAGED zshrc APPEND"
+    block: "{{ lookup('file', role_path + '/files/zshrc.append') }}"

@@ -1,0 +1,33 @@
+- name: pyenv deps
+  community.general.pacman:
+    name:
+      - gcc
+      - make
+      - patch
+      - openssl
+      - zlib
+      - xz
+      - libffi
+      - readline
+      - sqlite
+      - bzip2
+    state: present
+
+- name: Install pyenv (user)
+  become: false
+  become_user: "{{ primary_user }}"
+  git:
+    repo: https://github.com/pyenv/pyenv.git
+    dest: "/home/{{ primary_user }}/.pyenv"
+    version: master
+
+- name: Add pyenv init to .zshrc
+  become: false
+  become_user: "{{ primary_user }}"
+  blockinfile:
+    path: "/home/{{ primary_user }}/.zshrc"
+    marker: "# {mark} ANSIBLE MANAGED pyenv"
+    block: |
+      export PYENV_ROOT="$HOME/.pyenv"
+      command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
+      eval "$(pyenv init -)"

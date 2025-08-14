@@ -1,0 +1,31 @@
+- name: Enable parallel downloads
+  lineinfile:
+    path: /etc/pacman.conf
+    regexp: '^#?ParallelDownloads'
+    line: 'ParallelDownloads = 5'
+
+- name: Update + upgrade
+  pacman: { update_cache: yes, upgrade: yes }
+
+- name: Base packages
+  community.general.pacman:
+    name:
+      - base-devel
+      - git
+      - wget
+      - curl
+      - unzip
+      - zip
+      - openssh
+      - networkmanager
+      - sudo
+      - python
+      - which
+    state: present
+
+- name: Enable NetworkManager + sshd
+  systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop: [NetworkManager, sshd]

@@ -1,0 +1,10 @@
+- hosts: all
+  become: true
+  roles:
+    - users
+    - base
+    - desktop
+    - shell
+    - pyenv
+    - apps
+    - wallpapers

@@ -1,0 +1,108 @@
+---
+- name: Ensure Pictures and Wallpapers dirs
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ primary_user }}"
+    group: "{{ primary_user }}"
+    mode: '0755'
+  loop:
+    - "/home/{{ primary_user }}/Pictures"
+    - "{{ wallpapers_dir }}"
+
+- name: Copy Wallpapers folder contents
+  copy:
+    src: "Wallpapers/"
+    dest: "{{ wallpapers_dir }}/"
+    owner: "{{ primary_user }}"
+    group: "{{ primary_user }}"
+    mode: '0644'
+  notify: Fix permissions
+
+- name: Install change_wallpapers.sh (yours)
+  copy:
+    src: "change_wallpapers.sh"
+    dest: "{{ wallpapers_dir }}/change_wallpapers.sh"
+    owner: "{{ primary_user }}"
+    group: "{{ primary_user }}"
+    mode: '0755'
+
+# OPTIONAL: safety symlink for your 21:00 job name
+- name: Ensure change_swallpapers.sh symlink exists
+  file:
+    src: "{{ wallpapers_dir }}/change_wallpapers.sh"
+    dest: "{{ wallpapers_dir }}/change_swallpapers.sh"
+    state: link
+    owner: "{{ primary_user }}"
+    group: "{{ primary_user }}"
+
+# Patch your script to auto-detect the Firefox profile (replaces the hard-coded line)
+- name: Make Firefox profile handling robust
+  become: false
+  become_user: "{{ primary_user }}"
+  lineinfile:
+    path: "{{ wallpapers_dir }}/change_wallpapers.sh"
+    regexp: '^cp\s+~/.cache/wal/firefox_content\.css\s+~/.mozilla/firefox/.+?/chrome/userContent\.css$'
+    line: |
+      profile_dir="$(find "$HOME/.mozilla/firefox" -maxdepth 1 -type d -name "*.default*" -o -name "*.default-esr*" | head -n1)"
+      if [ -n "$profile_dir" ]; then
+        mkdir -p "$profile_dir/chrome"
+        cp ~/.cache/wal/firefox_content.css "$profile_dir/chrome/userContent.css"
+      fi
+
+# Install your themes/icons
+- name: Install Cinnamon themes
+  copy:
+    src: "themes/"
+    dest: "{{ themes_dir }}/"
+    owner: "{{ primary_user }}"
+    group: "{{ primary_user }}"
+    mode: '0755'
+
+- name: Install icon themes
+  copy:
+    src: "icons/"
+    dest: "{{ icons_dir }}/"
+    owner: "{{ primary_user }}"
+    group: "{{ primary_user }}"
+    mode: '0755'
+
+# Cron jobs with DISPLAY + DBUS so gsettings works
+- name: Cron 06:00
+  cron:
+    name: "Change wallpapers at 06:00"
+    user: "{{ primary_user }}"
+    minute: "0"
+    hour: "6"
+    job: 'DISPLAY=:0 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus {{ wallpapers_dir }}/change_wallpapers.sh'
+
+- name: Cron 17:00
+  cron:
+    name: "Change wallpapers at 17:00"
+    user: "{{ primary_user }}"
+    minute: "0"
+    hour: "17"
+    job: 'DISPLAY=:0 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus {{ wallpapers_dir }}/change_wallpapers.sh'
+
+- name: Cron 21:00 (swallpapers)
+  cron:
+    name: "Change swallpapers at 21:00"
+    user: "{{ primary_user }}"
+    minute: "0"
+    hour: "21"
+    job: 'DISPLAY=:0 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus {{ wallpapers_dir }}/change_swallpapers.sh'
+
+- name: Ensure {{ primary_user }} owns pictures subtree
+  file:
+    path: "/home/{{ primary_user }}/Pictures"
+    owner: "{{ primary_user }}"
+    group: "{{ primary_user }}"
+    recurse: yes
+
+handlers:
+  - name: Fix permissions
+    file:
+      path: "{{ wallpapers_dir }}"
+      owner: "{{ primary_user }}"
+      group: "{{ primary_user }}"
+      recurse: yes

@@ -1,0 +1,17 @@
+- name: Ensure wheel group exists
+  group: { name: wheel, state: present }
+
+- name: Create user {{ primary_user }}
+  user:
+    name: "{{ primary_user }}"
+    groups: wheel
+    append: yes
+    shell: "{{ primary_shell }}"
+    create_home: yes
+
+- name: Allow wheel group sudo (no pw change if you prefer)
+  lineinfile:
+    path: /etc/sudoers
+    regexp: '^#?\s*%wheel\s+ALL=\(ALL:ALL\)\s+ALL'
+    line: '%wheel ALL=(ALL:ALL) ALL'
+    validate: 'visudo -cf %s'

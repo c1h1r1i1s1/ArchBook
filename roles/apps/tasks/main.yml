@@ -1,0 +1,25 @@
+# Repo packages first
+- name: Repo apps (firefox, alacritty, neovim, pywal)
+  community.general.pacman:
+    name:
+      - firefox
+      - alacritty
+      - neovim
+      - pywal          # provides `wal`
+    state: present
+
+# AUR apps: Spotify, Microsoft VS Code, Joplin
+# (installs as the primary user to build AUR packages in $HOME)
+- name: Ensure yay via kewlfft.aur is present
+  include_role:
+    name: kewlfft.aur
+
+- name: Install AUR apps (spotify, VS Code, Joplin)
+  become: false
+  become_user: "{{ primary_user }}"
+  kewlfft.aur.aur:
+    name:
+      - spotify
+      - visual-studio-code-bin
+      - joplin
+    state: present
