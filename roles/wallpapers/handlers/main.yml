@@ -1,0 +1,6 @@
+- name: Fix permissions
+  file:
+    path: "{{ wallpapers_dir }}"
+    owner: "{{ primary_user }}"
+    group: "{{ primary_user }}"
+    recurse: yes

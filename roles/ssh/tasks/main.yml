@@ -1,4 +1,3 @@
----
 - name: Ensure ~/.ssh exists
   file:
     path: "/home/{{ primary_user }}/.ssh"
@@ -7,14 +6,12 @@
     group: "{{ primary_user }}"
     mode: '0700'
 
-- name: Decide path for GitHub and server keys
+- name: Set key paths
   set_fact:
     _github_key: "{{ github_key_path | default('/home/' ~ primary_user ~ '/.ssh/woody') }}"
     _serverus_key: "{{ serverus_key_path | default('/home/' ~ primary_user ~ '/.ssh/serverus') }}"
 
-# ----- OPTION A: install existing keys from vault -----
-- name: Install GitHub private key from vault
-  when: install_existing_keys | bool
+- name: Install GitHub private key (vault)
   copy:
     dest: "{{ _github_key }}"
     content: "{{ vault_github_private_key }}"
@@ -22,8 +19,7 @@
     group: "{{ primary_user }}"
     mode: '0600'
 
-- name: Install Serverus private key from vault
-  when: install_existing_keys | bool
+- name: Install server private key (vault)
   copy:
     dest: "{{ _serverus_key }}"
     content: "{{ vault_serverus_private_key }}"
@@ -31,45 +27,45 @@
     group: "{{ primary_user }}"
     mode: '0600'
 
-# SSH config for GitHub + server (lets you use `ssh serverus` and git over SSH)
+# ---- SSH config so aliases are unnecessary (use `ssh serverus`) ----
+# Also auto-load keys into the running agent on first use.
 - name: Install ~/.ssh/config
-  template:
-    src: "ssh_config.j2"
+  copy:
     dest: "/home/{{ primary_user }}/.ssh/config"
     owner: "{{ primary_user }}"
     group: "{{ primary_user }}"
     mode: '0600'
+    content: |
+      Host github.com
+        HostName github.com
+        User git
+        IdentityFile {{ _github_key }}
+        IdentitiesOnly yes
+        AddKeysToAgent yes
 
-# Known hosts to avoid first-connection prompts
-- name: Add known_host for GitHub
+      Host serverus
+        HostName {{ serverus_host | default('192.168.0.12') }}
+        Port {{ serverus_port | default(2221) }}
+        User {{ primary_user }}
+        IdentityFile {{ _serverus_key }}
+        IdentitiesOnly yes
+        AddKeysToAgent yes
+
+# ---- Known hosts (avoid interactive fingerprint prompts) ----
+- name: Add GitHub to known_hosts
   known_hosts:
     path: "/home/{{ primary_user }}/.ssh/known_hosts"
     name: "github.com"
-    key: "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMh4Gf1C9bK1v7Vb1a1J9BM3v1bZ7NQ2dK8Jr9K8Jb+"  # placeholder; Ansible will fetch if absent
+    key: "{{ lookup('pipe', 'ssh-keyscan -t ed25519 github.com 2>/dev/null') }}"
     state: present
-  ignore_errors: true
-
-- name: Scan and add GitHub host key if not present
-  become_user: "{{ primary_user }}"
   become: false
-  shell: ssh-keyscan -t ed25519 github.com >> "$HOME/.ssh/known_hosts"
-  args: { creates: "/home/{{ primary_user }}/.ssh/.github_known" }
-  register: _ghscan
-  changed_when: _ghscan.rc == 0
-  failed_when: false
+  become_user: "{{ primary_user }}"
 
-- name: Mark github known scan
-  file:
-    path: "/home/{{ primary_user }}/.ssh/.github_known"
-    state: touch
-    owner: "{{ primary_user }}"
-    group: "{{ primary_user }}"
-    mode: '0600'
-
-- name: Add known_host for serverus
+- name: Add serverus to known_hosts
   known_hosts:
     path: "/home/{{ primary_user }}/.ssh/known_hosts"
-    name: "{{ serverus_host }}"
-    key: "{{ lookup('pipe', 'ssh-keyscan -p ' ~ serverus_port|string ~ ' -t ed25519 ' ~ serverus_host) }}"
+    name: "{{ serverus_host | default('192.168.0.12') }}"
+    key: "{{ lookup('pipe', 'ssh-keyscan -p ' ~ (serverus_port | default(2221) | string) ~ ' -t ed25519 ' ~ (serverus_host | default('192.168.0.12')) ~ ' 2>/dev/null') }}"
     state: present
-  ignore_errors: true
+  become: false
+  become_user: "{{ primary_user }}"

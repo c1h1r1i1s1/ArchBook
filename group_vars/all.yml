@@ -1,4 +1,6 @@
 primary_user: "c1h1r1i1s1"
+serverus_host: "192.168.0.12"
+serverus_port: 2221
 primary_shell: "/bin/zsh"
 wallpapers_dir: "/home/{{ primary_user }}/Pictures/Wallpapers"
 themes_dir: "/home/{{ primary_user }}/.themes"

@@ -1,4 +1,3 @@
----
 - name: Ensure Pictures and Wallpapers dirs
   file:
     path: "{{ item }}"
@@ -98,11 +97,3 @@
     owner: "{{ primary_user }}"
     group: "{{ primary_user }}"
     recurse: yes
-
-handlers:
-  - name: Fix permissions
-    file:
-      path: "{{ wallpapers_dir }}"
-      owner: "{{ primary_user }}"
-      group: "{{ primary_user }}"
-      recurse: yes
