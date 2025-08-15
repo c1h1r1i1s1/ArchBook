@@ -20,7 +20,7 @@
         name:
           - spotify
           - visual-studio-code-bin
-          - joplin
+          - joplin-appimage
         state: present
   become: false
   become_user: "{{ primary_user }}"

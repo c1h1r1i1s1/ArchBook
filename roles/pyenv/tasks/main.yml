@@ -13,21 +13,20 @@
       - bzip2
     state: present
 
-- name: Install pyenv (user)
-  become: false
-  become_user: "{{ primary_user }}"
-  git:
-    repo: https://github.com/pyenv/pyenv.git
-    dest: "/home/{{ primary_user }}/.pyenv"
-    version: master
+- block:
+    - name: Install pyenv
+      git:
+        repo: https://github.com/pyenv/pyenv.git
+        dest: "/home/{{ primary_user }}/.pyenv"
+        version: master
 
-- name: Add pyenv init to .zshrc
+    - name: Add pyenv init to .zshrc
+      blockinfile:
+        path: "/home/{{ primary_user }}/.zshrc"
+        marker: "# {mark} ANSIBLE MANAGED pyenv"
+        block: |
+          export PYENV_ROOT="$HOME/.pyenv"
+          command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
+          eval "$(pyenv init -)"
   become: false
   become_user: "{{ primary_user }}"
-  blockinfile:
-    path: "/home/{{ primary_user }}/.zshrc"
-    marker: "# {mark} ANSIBLE MANAGED pyenv"
-    block: |
-      export PYENV_ROOT="$HOME/.pyenv"
-      command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
-      eval "$(pyenv init -)"
