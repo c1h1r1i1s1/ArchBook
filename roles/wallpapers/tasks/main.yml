@@ -49,22 +49,61 @@
         cp ~/.cache/wal/firefox_content.css "$profile_dir/chrome/userContent.css"
       fi
 
-# Install your themes/icons
-- name: Install Cinnamon themes
-  copy:
-    src: "themes/"
-    dest: "{{ themes_dir }}/"
-    owner: "{{ primary_user }}"
-    group: "{{ primary_user }}"
-    mode: '0755'
+- name: Ensure rsync is installed
+  community.general.pacman:
+    name: rsync
+    state: present
+    update_cache: yes
 
-- name: Install icon themes
-  copy:
-    src: "icons/"
-    dest: "{{ icons_dir }}/"
-    owner: "{{ primary_user }}"
-    group: "{{ primary_user }}"
+- name: Ensure system-wide theme/icon dirs exist
+  become: true
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
     mode: '0755'
+  loop:
+    - /usr/share/themes
+    - /usr/share/icons
+
+- name: Stage themes/icons archive (if present)
+  copy:
+    src: "themes_icons.tar.zst"
+    dest: "/tmp/themes_icons.tar.zst"
+    mode: '0644'
+  register: _archive
+
+- name: Extract themes/icons archive (first run bootstrap)
+  become: true
+  when: _archive is defined and _archive is succeeded
+  unarchive:
+    src: "/tmp/themes_icons.tar.zst"
+    dest: "/usr/share"
+    remote_src: true
+    creates: "/usr/share/themes/oomox-day"
+
+- name: Sync Cinnamon themes (progress)
+  become: true
+  synchronize:
+    src: "{{ role_path }}/files/themes/"
+    dest: "/usr/share/themes/"
+    archive: true
+    delete: false
+    rsync_opts:
+      - "--info=progress2"
+      - "--exclude=.git"
+
+- name: Sync icon themes (progress)
+  become: true
+  synchronize:
+    src: "{{ role_path }}/files/icons/"
+    dest: "/usr/share/icons/"
+    archive: true
+    delete: false
+    rsync_opts:
+      - "--info=progress2"
+      - "--exclude=.git"
 
 # Cron jobs with DISPLAY + DBUS so gsettings works
 - name: Cron 06:00
