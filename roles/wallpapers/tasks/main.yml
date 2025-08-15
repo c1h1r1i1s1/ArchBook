@@ -26,15 +26,6 @@
     group: "{{ primary_user }}"
     mode: '0755'
 
-# OPTIONAL: safety symlink for your 21:00 job name
-- name: Ensure change_swallpapers.sh symlink exists
-  file:
-    src: "{{ wallpapers_dir }}/change_wallpapers.sh"
-    dest: "{{ wallpapers_dir }}/change_swallpapers.sh"
-    state: link
-    owner: "{{ primary_user }}"
-    group: "{{ primary_user }}"
-
 # Patch your script to auto-detect the Firefox profile (replaces the hard-coded line)
 - name: Make Firefox profile handling robust
   become: false
@@ -48,12 +39,6 @@
         mkdir -p "$profile_dir/chrome"
         cp ~/.cache/wal/firefox_content.css "$profile_dir/chrome/userContent.css"
       fi
-
-- name: Ensure rsync is installed
-  community.general.pacman:
-    name: rsync
-    state: present
-    update_cache: yes
 
 - name: Ensure system-wide theme/icon dirs exist
   become: true
@@ -83,56 +68,100 @@
     remote_src: true
     creates: "/usr/share/themes/oomox-day"
 
-# - name: Sync Cinnamon themes (progress)
-#   become: true
-#   synchronize:
-#     src: "{{ role_path }}/files/themes/"
-#     dest: "/usr/share/themes/"
-#     archive: true
-#     delete: false
-#     rsync_opts:
-#       - "--info=progress2"
-#       - "--exclude=.git"
-
-# - name: Sync icon themes (progress)
-#   become: true
-#   synchronize:
-#     src: "{{ role_path }}/files/icons/"
-#     dest: "/usr/share/icons/"
-#     archive: true
-#     delete: false
-#     rsync_opts:
-#       - "--info=progress2"
-#       - "--exclude=.git"
-
-# Cron jobs with DISPLAY + DBUS so gsettings works
-- name: Cron 06:00
-  cron:
-    name: "Change wallpapers at 06:00"
-    user: "{{ primary_user }}"
-    minute: "0"
-    hour: "6"
-    job: 'DISPLAY=:0 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus {{ wallpapers_dir }}/change_wallpapers.sh'
-
-- name: Cron 17:00
-  cron:
-    name: "Change wallpapers at 17:00"
-    user: "{{ primary_user }}"
-    minute: "0"
-    hour: "17"
-    job: 'DISPLAY=:0 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus {{ wallpapers_dir }}/change_wallpapers.sh'
-
-- name: Cron 21:00 (swallpapers)
-  cron:
-    name: "Change swallpapers at 21:00"
-    user: "{{ primary_user }}"
-    minute: "0"
-    hour: "21"
-    job: 'DISPLAY=:0 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus {{ wallpapers_dir }}/change_swallpapers.sh'
-
 - name: Ensure {{ primary_user }} owns pictures subtree
   file:
     path: "/home/{{ primary_user }}/Pictures"
     owner: "{{ primary_user }}"
     group: "{{ primary_user }}"
     recurse: yes
+
+- name: Ensure user systemd directory exists
+  become: false
+  become_user: "{{ primary_user }}"
+  file:
+    path: "/home/{{ primary_user }}/.config/systemd/user"
+    state: directory
+    mode: "0755"
+
+- name: Install change-wallpapers.service (user)
+  become: false
+  become_user: "{{ primary_user }}"
+  copy:
+    dest: "/home/{{ primary_user }}/.config/systemd/user/change-wallpapers.service"
+    mode: "0644"
+    content: |
+      [Unit]
+      Description=Run wallpaper change script
+      After=graphical-session.target
+
+      [Service]
+      Type=exec
+      Environment=DISPLAY=:0
+      Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/%U/bus
+      ExecStart=%h/Pictures/Wallpapers/change_wallpapers.sh
+
+      [Install]
+      WantedBy=default.target
+
+- name: Install change-wallpapers-morning.timer
+  become: false
+  become_user: "{{ primary_user }}"
+  copy:
+    dest: "/home/{{ primary_user }}/.config/systemd/user/change-wallpapers-morning.timer"
+    mode: "0644"
+    content: |
+      [Unit]
+      Description=Change wallpapers at 06:00
+
+      [Timer]
+      OnCalendar=06:00
+      Persistent=true
+      Unit=change-wallpapers.service
+
+      [Install]
+      WantedBy=timers.target
+
+- name: Install change-wallpapers-evening.timer
+  become: false
+  become_user: "{{ primary_user }}"
+  copy:
+    dest: "/home/{{ primary_user }}/.config/systemd/user/change-wallpapers-evening.timer"
+    mode: "0644"
+    content: |
+      [Unit]
+      Description=Change wallpapers at 17:00
+
+      [Timer]
+      OnCalendar=17:00
+      Persistent=true
+      Unit=change-wallpapers.service
+
+      [Install]
+      WantedBy=timers.target
+
+- name: Install change-wallpapers-night.timer
+  become: false
+  become_user: "{{ primary_user }}"
+  copy:
+    dest: "/home/{{ primary_user }}/.config/systemd/user/change-wallpapers-night.timer"
+    mode: "0644"
+    content: |
+      [Unit]
+      Description=Change wallpapers at 21:00
+
+      [Timer]
+      OnCalendar=21:00
+      Persistent=true
+      Unit=change-wallpapers.service
+
+      [Install]
+      WantedBy=timers.target
+
+- name: Reload user systemd and enable timers
+  become: false
+  become_user: "{{ primary_user }}"
+  shell: |
+    systemctl --user daemon-reload
+    systemctl --user enable --now change-wallpapers-morning.timer
+    systemctl --user enable --now change-wallpapers-evening.timer
+    systemctl --user enable --now change-wallpapers-night.timer
