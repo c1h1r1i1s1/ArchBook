@@ -83,27 +83,27 @@
     remote_src: true
     creates: "/usr/share/themes/oomox-day"
 
-- name: Sync Cinnamon themes (progress)
-  become: true
-  synchronize:
-    src: "{{ role_path }}/files/themes/"
-    dest: "/usr/share/themes/"
-    archive: true
-    delete: false
-    rsync_opts:
-      - "--info=progress2"
-      - "--exclude=.git"
+# - name: Sync Cinnamon themes (progress)
+#   become: true
+#   synchronize:
+#     src: "{{ role_path }}/files/themes/"
+#     dest: "/usr/share/themes/"
+#     archive: true
+#     delete: false
+#     rsync_opts:
+#       - "--info=progress2"
+#       - "--exclude=.git"
 
-- name: Sync icon themes (progress)
-  become: true
-  synchronize:
-    src: "{{ role_path }}/files/icons/"
-    dest: "/usr/share/icons/"
-    archive: true
-    delete: false
-    rsync_opts:
-      - "--info=progress2"
-      - "--exclude=.git"
+# - name: Sync icon themes (progress)
+#   become: true
+#   synchronize:
+#     src: "{{ role_path }}/files/icons/"
+#     dest: "/usr/share/icons/"
+#     archive: true
+#     delete: false
+#     rsync_opts:
+#       - "--info=progress2"
+#       - "--exclude=.git"
 
 # Cron jobs with DISPLAY + DBUS so gsettings works
 - name: Cron 06:00
