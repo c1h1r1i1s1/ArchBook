@@ -61,11 +61,9 @@
   become: false
   become_user: "{{ primary_user }}"
 
-- name: Add serverus to known_hosts
+- name: Add serverus to known_hosts (custom port)
   known_hosts:
     path: "/home/{{ primary_user }}/.ssh/known_hosts"
-    name: "{{ serverus_host | default('192.168.0.12') }}"
-    key: "{{ lookup('pipe', 'ssh-keyscan -p ' ~ (serverus_port | default(2221) | string) ~ ' -t ed25519 ' ~ (serverus_host | default('192.168.0.12')) ~ ' 2>/dev/null') }}"
+    name: "{{ serverus_host }}"          # e.g. 192.168.0.12 or a DNS name
+    port: "{{ serverus_port | default(2221) }}"
     state: present
-  become: false
-  become_user: "{{ primary_user }}"
