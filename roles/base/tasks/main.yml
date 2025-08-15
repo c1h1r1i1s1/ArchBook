@@ -34,3 +34,12 @@
   community.general.pacman:
     name: base-devel
     state: present
+
+- name: Allow pacman without password for AUR installs
+  copy:
+    dest: /etc/sudoers.d/10-aur-pacman
+    owner: root
+    group: root
+    mode: '0440'
+    content: "{{ primary_user }} ALL=(ALL) NOPASSWD: /usr/bin/pacman\n"
+    validate: 'visudo -cf %s'
